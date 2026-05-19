@@ -20,7 +20,7 @@ class ProjectSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'workspace_id', 'created_at']
 
     def get_task_count(self, obj):
-        return 0
+        return obj.tasks.count()
 
     def validate_lead_id(self, value):
         if value is None:
