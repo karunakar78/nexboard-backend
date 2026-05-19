@@ -10,7 +10,7 @@ from .serializers import (
     WorkspaceMemberSerializer,
     WorkspaceSerializer,
 )
-
+from apps.notifications.tasks import send_workspace_invite_email
 
 class WorkspaceListCreateView(generics.ListCreateAPIView):
     """
@@ -75,6 +75,12 @@ class InviteMemberView(APIView):
         )
         serializer.is_valid(raise_exception=True)
         invite = serializer.save()
+        send_workspace_invite_email.delay(
+            recipient_email=invite.email,
+            inviter_name=request.user.full_name,
+            workspace_name=workspace.name,
+            invite_token=invite.token,
+        )
 
         return Response({
             'status':  'success',

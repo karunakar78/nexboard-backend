@@ -8,6 +8,12 @@ from .serializers import (
     ActivityLogSerializer, CommentSerializer,
     LabelSerializer, TaskSerializer,
 )
+from apps.notifications.tasks import (
+    create_in_app_notification,
+    send_comment_notification_email,
+    send_task_assigned_email,
+)
+from apps.notifications.models import Notification
 
 
 def get_project(ws_id, project_id, user):
@@ -63,6 +69,24 @@ class TaskListCreateView(generics.ListCreateAPIView):
         ctx = super().get_serializer_context()
         ctx['project'] = self.get_project()
         return ctx
+    
+    def perform_create(self, serializer):
+        task = serializer.save()
+
+        # Fire async email if task has an assignee
+        if task.assignee and task.assignee != self.request.user:
+            send_task_assigned_email.delay(
+                assignee_email=task.assignee.email,
+                task_title=task.title,
+                project_name=task.project.name,
+                assigner_name=self.request.user.full_name,
+            )
+            create_in_app_notification.delay(
+                recipient_id=str(task.assignee.id),
+                notif_type=Notification.Type.TASK_ASSIGNED,
+                title=f'You were assigned: {task.title}',
+                body=f'In project {task.project.name}',
+            )
 
 
 class TaskDetailView(generics.RetrieveUpdateDestroyAPIView):
@@ -119,11 +143,26 @@ class CommentListCreateView(generics.ListCreateAPIView):
     def perform_create(self, serializer):
         task = self.get_task()
         comment = serializer.save(author=self.request.user, task=task)
+
         ActivityLog.objects.create(
             task=task,
             actor=self.request.user,
-            verb=f'added a comment',
+            verb='added a comment',
         )
+
+        # Notify task assignee if it's not the commenter
+        if task.assignee and task.assignee != self.request.user:
+            send_comment_notification_email.delay(
+                recipient_email=task.assignee.email,
+                commenter_name=self.request.user.full_name,
+                task_title=task.title,
+            )
+            create_in_app_notification.delay(
+                recipient_id=str(task.assignee.id),
+                notif_type=Notification.Type.TASK_COMMENTED,
+                title=f'New comment on: {task.title}',
+                body=comment.content[:100],
+            )
         return comment
 
 

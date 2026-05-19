@@ -19,6 +19,8 @@ urlpatterns = [
 
     path('api/workspaces/<uuid:ws_id>/projects/<uuid:project_id>/tasks/', include('apps.tasks.urls')),
 
+    path('api/notifications/', include('apps.notifications.urls')),
+
     # OpenAPI docs
     path('api/schema/',    SpectacularAPIView.as_view(),        name='schema'),
     path('api/docs/',      SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
