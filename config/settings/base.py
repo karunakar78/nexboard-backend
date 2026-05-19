@@ -122,6 +122,15 @@ REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'common.pagination.StandardPagination',
     'PAGE_SIZE': 20,
     'EXCEPTION_HANDLER': 'common.exceptions.custom_exception_handler',
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle',
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '30/hour',    # unauthenticated — very restrictive
+        'user': '500/hour',   # authenticated users
+        'auth': '10/minute',  # login/register endpoints specifically
+    },
 }
 
 # --- dj-rest-auth: use JWT, not the default token model ---

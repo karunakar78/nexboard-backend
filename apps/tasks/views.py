@@ -14,6 +14,7 @@ from apps.notifications.tasks import (
     send_task_assigned_email,
 )
 from apps.notifications.models import Notification
+from common.cache import invalidate_workspace_analytics
 
 
 def get_project(ws_id, project_id, user):
@@ -72,6 +73,8 @@ class TaskListCreateView(generics.ListCreateAPIView):
     
     def perform_create(self, serializer):
         task = serializer.save()
+
+        invalidate_workspace_analytics(task.project.workspace_id)
 
         # Fire async email if task has an assignee
         if task.assignee and task.assignee != self.request.user:

@@ -31,3 +31,6 @@ staticfiles/
 # IDE
 .vscode/
 .idea/
+
+
+dev.sh
