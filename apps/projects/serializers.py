@@ -49,3 +49,13 @@ class ProjectSerializer(serializers.ModelSerializer):
         if lead_id is not None:
             instance.lead_id = lead_id
         return super().update(instance, validated_data)
+    
+    def validate_name(self, value):
+        workspace = self.context.get('workspace')
+        if workspace and Project.objects.filter(
+            workspace=workspace, name=value
+        ).exists():
+            raise serializers.ValidationError(
+                'A project with this name already exists in the workspace.'
+            )
+        return value

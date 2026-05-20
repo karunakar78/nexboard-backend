@@ -72,6 +72,11 @@ class TaskListCreateView(generics.ListCreateAPIView):
         return ctx
     
     def perform_create(self, serializer):
+        project = self.get_project()
+        if not project:
+            from rest_framework.exceptions import NotFound
+            raise NotFound('Project not found.')
+
         task = serializer.save()
 
         invalidate_workspace_analytics(task.project.workspace_id)
